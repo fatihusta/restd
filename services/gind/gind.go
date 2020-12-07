@@ -3,6 +3,8 @@ package gind
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"strings"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -132,7 +134,7 @@ func Startup() {
 	engine.Static("/setup", "/www/setup")
 	engine.Static("/static", "/www/static")
 	// handle 404 routes
-	// TODO engine.NoRoute(noRouteHandler)
+	engine.NoRoute(noRouteHandler)
 
 	/*
 	TODO
@@ -153,7 +155,7 @@ func Startup() {
 	*/
 
 	// listen and serve on 0.0.0.0:80
-	engine.Run(":80")
+	engine.Run(":8080")
 
 	/*
 	TODO
@@ -173,6 +175,15 @@ func GenerateRandomString(n int) string {
 		return "secret"
 	}
 	return base64.URLEncoding.EncodeToString(b)
+}
+
+// handles 404 routes
+func noRouteHandler(c *gin.Context) {
+	// MFW-704 - return 200 for JS map files requested by Safari on Mac
+	if strings.Contains(c.Request.URL.Path, ".js.map") {
+		c.String(http.StatusOK, "")
+	}
+	// otherwise browser will default to its 404 handler
 }
 
 func addHeaders(c *gin.Context) {
