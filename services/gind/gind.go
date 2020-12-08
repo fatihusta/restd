@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"strings"
 	"net/http"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/untangle/packetd/services/logger"
 )
 
 var engine *gin.Engine
@@ -17,18 +17,14 @@ func Startup() {
 
 	gin.SetMode(gin.ReleaseMode)
 	gin.DisableConsoleColor()
-	/*
-	TODO
-	gin.DefaultWriter = logger.NewLogWriter(logsrc)
-	*/
+	// TODO gin.DefaultWriter = logger.NewLogWriter(logsrc)
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
-		//logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
-		fmt.Println(httpMethod, absolutePath, handlerName, nuHandlers)
+		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
 	}
 	
 
 	engine = gin.New()
-	// TODO engine.Use(ginlogger())
+	engine.Use(ginlogger())
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
 
@@ -158,16 +154,16 @@ func Startup() {
 	*/
 
 	// listen and serve on 0.0.0.0:80
-	fmt.Println("Started server")
+	// TODO change to :80 once take out packetd restd
 	go engine.Run(":8080")
 
 	/*
 	TODO
 	cert, key := certmanager.GetConfiguredCert()
 	go engine.RunTLS(":443", cert, key)
-
-	logger.Info("The RestD engine has been started\n")
 	*/
+	logger.Info("The RestD engine has been started\n")
+	
 
 	
 }
@@ -199,6 +195,13 @@ func addHeaders(c *gin.Context) {
 	// c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
 	// c.Header("Access-Control-Allow-Headers", "X-Custom-Header")
 	c.Next()
+}
+
+func ginlogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v\n", c.Request.Method, c.Request.RequestURI)
+		c.Next()
+	}
 }
 
 // addTokenToSession checks for a "token" argument, and adds it to the session

@@ -1,6 +1,5 @@
 package main
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"os/user"
@@ -10,6 +9,7 @@ import (
 	
 
 	"github.com/untangle/restd/services/gind"
+	"github.com/untangle/packetd/services/logger"
 )
 
 var shutdownFlag bool
@@ -28,6 +28,8 @@ func main() {
 		panic("This application must be run as root")
 	}
 
+	logger.Startup()
+
 	setIsShutdown(false)
 	gind.Startup()
 
@@ -36,9 +38,13 @@ func main() {
 	for !getShutdown() {
 		select {
 		case <-time.After(2 * time.Second):
-			fmt.Println("Time")
+			logger.Debug("Time")
 		}
 	}
+
+	logger.Info("Shutdown restd logger")
+	logger.Shutdown()
+
 
 }
 
@@ -51,14 +57,13 @@ func getShutdown() bool {
 }
 
 func handleSignals() {
-	// TODO fmt-->logger.Info
 	// Add SIGINT & SIGTERM handler (exit)
 	termch := make(chan os.Signal, 1)
 	signal.Notify(termch, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-termch
 		go func() {
-			fmt.Println("Received signal [%v]. Setting shutdown flag\n", sig)
+			logger.Info("Received signal [%v]. Setting shutdown flag\n", sig)
 			setIsShutdown(true)
 		}()
 	}()
@@ -69,7 +74,7 @@ func handleSignals() {
 	go func() {
 		for {
 			sig := <-quitch
-			fmt.Println("Received signal [%v]. Calling dumpStack()\n", sig)
+			logger.Info("Received signal [%v]. Calling dumpStack()\n", sig)
 			// TODO go dumpStack()
 		}
 	}()
@@ -80,7 +85,7 @@ func handleSignals() {
 	go func() {
 		for {
 			sig := <-hupch
-			fmt.Println("Received signal [%v]. Calling handlers\n", sig)
+			logger.Info("Received signal [%v]. Calling handlers\n", sig)
 		}
 	}()
 }
