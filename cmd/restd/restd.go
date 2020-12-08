@@ -25,7 +25,7 @@ func main() {
 	}
 
 	if userid != 0 {
-		panic("This application must be run as root")
+		panic("This application must be run as root\n")
 	}
 
 	logger.Startup()
@@ -42,9 +42,8 @@ func main() {
 		}
 	}
 
-	logger.Info("Shutdown restd logger")
+	logger.Info("Shutdown restd logger\n")
 	logger.Shutdown()
-
 
 }
 
@@ -69,6 +68,8 @@ func handleSignals() {
 	}()
 
 	// Add SIGQUIT handler (dump thread stack trace)
+	/*
+	TODO
 	quitch := make(chan os.Signal, 1)
 	signal.Notify(quitch, syscall.SIGQUIT)
 	go func() {
@@ -88,4 +89,5 @@ func handleSignals() {
 			logger.Info("Received signal [%v]. Calling handlers\n", sig)
 		}
 	}()
+	*/
 }
