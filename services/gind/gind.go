@@ -17,7 +17,7 @@ func Startup() {
 
 	gin.SetMode(gin.ReleaseMode)
 	gin.DisableConsoleColor()
-	// TODO gin.DefaultWriter = logger.NewLogWriter(logsrc)
+	gin.DefaultWriter = logger.NewLogWriter(logsrc)
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
 		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
 	}
