@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"net/http"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,11 +19,12 @@ func Startup() {
 	gin.DisableConsoleColor()
 	/*
 	TODO
-	gin.DefaultWriter = logger.NewLogWriter(logsrc)
+	gin.DefaultWriter = logger.NewLogWriter(logsrc)*/
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
-		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
+		//logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
+		fmt.Println(httpMethod, absolutePath, handlerName, nuHandlers)
 	}
-	*/
+	
 
 	engine = gin.New()
 	// TODO engine.Use(ginlogger())
@@ -164,6 +166,8 @@ func Startup() {
 
 	logger.Info("The RestD engine has been started\n")
 	*/
+
+	fmt.Println("Started server")
 }
 
 // GenerateRandomString generates a random string of the specified length
