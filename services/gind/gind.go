@@ -19,7 +19,8 @@ func Startup() {
 	gin.DisableConsoleColor()
 	/*
 	TODO
-	gin.DefaultWriter = logger.NewLogWriter(logsrc)*/
+	gin.DefaultWriter = logger.NewLogWriter(logsrc)
+	*/
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
 		//logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
 		fmt.Println(httpMethod, absolutePath, handlerName, nuHandlers)
@@ -157,7 +158,8 @@ func Startup() {
 	*/
 
 	// listen and serve on 0.0.0.0:80
-	engine.Run(":8080")
+	fmt.Println("Started server")
+	go engine.Run(":8080")
 
 	/*
 	TODO
@@ -167,7 +169,7 @@ func Startup() {
 	logger.Info("The RestD engine has been started\n")
 	*/
 
-	fmt.Println("Started server")
+	
 }
 
 // GenerateRandomString generates a random string of the specified length
