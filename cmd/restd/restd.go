@@ -13,7 +13,10 @@ import (
 )
 
 var shutdownFlag bool
+var routineWatcher = make(chan int)
+
 func main() {
+	// Check we are root user
 	userinfo, err := user.Current()
 	if err != nil {
 		panic(err)
@@ -28,23 +31,34 @@ func main() {
 		panic("This application must be run as root\n")
 	}
 
+	// Start up logger
 	logger.Startup()
+	logger.Info("Starting up restd...\n")
 
-	setIsShutdown(false)
-	gind.Startup()
+	// Start services
+	startServices()
 
 	handleSignals()
 
 	for !getShutdown() {
 		select {
 		case <-time.After(2 * time.Second):
-			logger.Debug("Time")
+			logger.Debug("restd is running...\n")
 		}
 	}
 
 	logger.Info("Shutdown restd logger\n")
-	logger.Shutdown()
+	stopServices()
 
+}
+
+func startServices() {
+	setIsShutdown(false)
+	gind.Startup()
+}
+
+func stopServices() {
+	logger.Shutdown()
 }
 
 func setIsShutdown(flag bool) {
