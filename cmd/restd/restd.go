@@ -1,9 +1,12 @@
 package main
 import (
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"os/user"
+	"runtime"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 	
@@ -12,8 +15,8 @@ import (
 	"github.com/untangle/packetd/services/logger"
 )
 
-var shutdownFlag bool
-var routineWatcher = make(chan int)
+var shutdownFlag uint32
+var shutdownChannel = make (chan bool)
 
 func main() {
 	// Check we are root user
@@ -40,33 +43,29 @@ func main() {
 
 	handleSignals()
 
-	for !getShutdown() {
+	for !GetShutdownFlag() {
 		select {
+		case <-shutdownChannel:
+			logger.Info("Shutdown channel initiated... %v\n", GetShutdownFlag())
 		case <-time.After(2 * time.Second):
-			logger.Debug("restd is running...\n")
+			logger.Info("restd is running...\n")
+			// logger.Info("\n")
+			// printStats()
 		}
 	}
 
-	logger.Info("Shutdown restd logger\n")
+	logger.Info("Shutdown restd...\n")
 	stopServices()
 
 }
 
 func startServices() {
-	setIsShutdown(false)
 	gind.Startup()
 }
 
 func stopServices() {
+	gind.Shutdown()
 	logger.Shutdown()
-}
-
-func setIsShutdown(flag bool) {
-	shutdownFlag = flag
-}
-
-func getShutdown() bool {
-	return shutdownFlag
 }
 
 func handleSignals() {
@@ -77,31 +76,53 @@ func handleSignals() {
 		sig := <-termch
 		go func() {
 			logger.Info("Received signal [%v]. Setting shutdown flag\n", sig)
-			setIsShutdown(true)
+			SetShutdownFlag()
 		}()
 	}()
 
 	// Add SIGQUIT handler (dump thread stack trace)
-	/*
-	TODO
 	quitch := make(chan os.Signal, 1)
 	signal.Notify(quitch, syscall.SIGQUIT)
 	go func() {
 		for {
 			sig := <-quitch
 			logger.Info("Received signal [%v]. Calling dumpStack()\n", sig)
-			// TODO go dumpStack()
+			go dumpStack()
 		}
 	}()
+}
 
-	// Add SIGHUP handler (call handlers)
-	hupch := make(chan os.Signal, 1)
-	signal.Notify(hupch, syscall.SIGHUP)
-	go func() {
-		for {
-			sig := <-hupch
-			logger.Info("Received signal [%v]. Calling handlers\n", sig)
-		}
-	}()
-	*/
+// dumpStack to /tmp/restd.stack and log
+func dumpStack() {
+	buf := make([]byte, 1<<20)
+	stacklen := runtime.Stack(buf, true)
+	ioutil.WriteFile("/tmp/restd.stack", buf[:stacklen], 0644)
+	logger.Warn("Printing Thread Dump...\n")
+	logger.Warn("\n\n%s\n\n", buf[:stacklen])
+	logger.Warn("Thread dump complete.\n")
+}
+
+// prints some basic stats about packetd
+func printStats() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	logger.Info("Memory Stats:\n")
+	logger.Info("Memory Alloc: %d kB\n", (mem.Alloc / 1024))
+	logger.Info("Memory TotalAlloc: %d kB\n", (mem.TotalAlloc / 1024))
+	logger.Info("Memory HeapAlloc: %d kB\n", (mem.HeapAlloc / 1024))
+	logger.Info("Memory HeapSys: %d kB\n", (mem.HeapSys / 1024))
+}
+
+// GetShutdownFlag returns the shutdown flag for kernel
+func GetShutdownFlag() bool {
+	if atomic.LoadUint32(&shutdownFlag) != 0 {
+		return true
+	}
+	return false
+}
+
+// SetShutdownFlag sets the shutdown flag for kernel
+func SetShutdownFlag() {
+	shutdownChannel <- true
+	atomic.StoreUint32(&shutdownFlag, 1)
 }

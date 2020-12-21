@@ -168,6 +168,10 @@ func Startup() {
 	
 }
 
+func Shutdown() {
+	
+}
+
 // GenerateRandomString generates a random string of the specified length
 func GenerateRandomString(n int) string {
 	b := make([]byte, n)
