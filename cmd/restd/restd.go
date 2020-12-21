@@ -11,8 +11,8 @@ import (
 	"time"
 	
 
+	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	"github.com/untangle/restd/services/gind"
-	"github.com/untangle/packetd/services/logger"
 )
 
 var shutdownFlag uint32

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/untangle/packetd/services/logger"
+	"github.com/jsommerville-untangle/golang-shared/services/logger"
 )
 
 var engine *gin.Engine
@@ -169,7 +169,7 @@ func Startup() {
 }
 
 func Shutdown() {
-	
+
 }
 
 // GenerateRandomString generates a random string of the specified length
