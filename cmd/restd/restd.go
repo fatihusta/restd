@@ -13,6 +13,7 @@ import (
 
 	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	"github.com/untangle/restd/services/gind"
+	"github.com/untangle/restd/services/messenger"
 )
 
 var shutdownFlag uint32
@@ -61,10 +62,12 @@ func main() {
 
 func startServices() {
 	gind.Startup()
+	messenger.Startup()
 }
 
 func stopServices() {
 	gind.Shutdown()
+	messenger.Shutdown()
 	logger.Shutdown()
 }
 

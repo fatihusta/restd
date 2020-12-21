@@ -11,6 +11,7 @@ RUN apk add autoconf
 RUN apk add automake
 RUN apk add libtool
 RUN apk add git
+RUN apk add zeromq-dev
 
 # build restd
 RUN mkdir -p /go/restd
