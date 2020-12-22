@@ -30,17 +30,10 @@ func getSessions() ([]map[string]interface{}, error) {
 
 	logger.Info("received reply: ", reply)
 
-	// test
 	var sessions []map[string]interface{}
-	m1 := make(map[string]interface{})
-	m1["ping"] = "pong"
-	m1["tennis"] = "ball"
-	sessions = append(sessions, m1)
-	m2 := make(map[string]interface{})
-	m2["pong"] = "ping"
-	m2["ball"] = "tennis"
-	sessions = append(sessions, m2)
-
+	result := make(map[string]interface{})
+	result["result"] = reply
+	sessions = append(sessions, result)
 	return sessions, nil
 }
 

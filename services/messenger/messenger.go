@@ -62,16 +62,16 @@ func CreateRequest(service string, function string) *zreq.ZMQRequest {
 	return request
 }
 
-func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply []string, err error) {
+func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, err error) {
 	retries_left := REQUEST_RETRIES
-	var reply []string
+	var reply [][]byte
 	var replyErr error
 	// send message
 	logger.Info("Sending ", requestRaw, "\n")
 	// TODO check socket is good
 	request, encodeErr := proto.Marshal(requestRaw)
 	if encodeErr != nil {
-		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
+		return "", errors.New("Failed to encode: " +  encodeErr.Error())
 	}
 	socket.SendMessage(request)
 
@@ -79,7 +79,7 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply []string, 
 		// Poll socket for a reply, with timeout
 		sockets, pollErr := poller.Poll(REQUEST_TIMEOUT)
 		if pollErr != nil {
-			return nil, errors.New("Failed to poll socket: " + pollErr.Error())
+			return "", errors.New("Failed to poll socket: " + pollErr.Error())
 		}
 
 		//  Here we process a server reply and exit our loop if the
@@ -89,23 +89,23 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply []string, 
 
 		if len(sockets) > 0 {
 			//  We got a reply from the server, must match sequence
-			reply, replyErr = socket.RecvMessage(0)
+			reply, replyErr = socket.RecvMessageBytes(0)
 			if replyErr != nil {
-				return nil, errors.New("Failed to receive a message: " + replyErr.Error())
+				return "", errors.New("Failed to receive a message: " + replyErr.Error())
 			}
 			logger.Info("Server replied OK (%s)\n", reply[0], "\n")
 			expect_reply = false
 		} else {
 			retries_left--
 			if retries_left == 0 {
-				return nil, errors.New("Server seems to be offline, abandoning")
+				return "", errors.New("Server seems to be offline, abandoning")
 			} else {
 				logger.Warn("No response from server, retrying...\n")
 				//  Old socket is confused; close it and open a new one
 				socket.Close()
 				socket, socErr, poller = setupZmqSocket()
 				if socErr != nil {
-					return nil, errors.New("Unable to setup retry ZMQ sockets\n")
+					return "", errors.New("Unable to setup retry ZMQ sockets\n")
 				}
 				//  Send request again, on new socket
 				socket.SendMessage(request)
@@ -114,7 +114,11 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply []string, 
 
 	}
 
-	return reply, nil
+	unencodedReply := &zreq.ZMQRequest{}
+	if unmarshalErr := proto.Unmarshal(reply[0], unencodedReply); unmarshalErr != nil {
+		return "", unmarshalErr
+	}
+	return unencodedReply.String(), nil
 }
 
 func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) {
