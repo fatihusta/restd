@@ -50,6 +50,7 @@ func main() {
 			logger.Info("Shutdown channel initiated... %v\n", GetShutdownFlag())
 		case <-time.After(2 * time.Second):
 			logger.Info("restd is running...\n")
+			// TODO - get rid of printStats
 			// logger.Info("\n")
 			// printStats()
 		}

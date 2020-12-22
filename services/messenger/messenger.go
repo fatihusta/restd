@@ -1,7 +1,7 @@
 package messenger
 
 import (
-	
+
 	zmq "github.com/pebbe/zmq4"
 	"github.com/jsommerville-untangle/golang-shared/services/logger"
 )
@@ -28,6 +28,16 @@ func Shutdown() {
 func socketClient(soc *zmq.Socket) {
 	defer soc.Close()
 
+	for request_nbr := 0; request_nbr != 10; request_nbr++ {
+		// send message
+		msg := "Hello"
+		logger.Info("Sending ", msg)
+		soc.Send(msg, 0)
+
+		// Wait for reply
+		reply, _ := soc.Recv(0)
+		logger.Info("Received ", reply)
+	}
 
 	return
 }
