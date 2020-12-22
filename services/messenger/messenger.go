@@ -5,7 +5,7 @@ import (
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
 )
 
 const (

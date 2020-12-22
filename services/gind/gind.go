@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
 )
 
 var engine *gin.Engine

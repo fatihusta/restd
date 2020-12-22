@@ -11,7 +11,7 @@ import (
 	"time"
 	
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/restd/services/gind"
 	"github.com/untangle/restd/services/messenger"
 )
