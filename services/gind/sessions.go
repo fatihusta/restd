@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger" 
-	"github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
+	"github.com/untangle/restd/services/messenger"
 )
 
 // statusSessions is the RESTD /api/status/sessions handler
@@ -22,6 +22,15 @@ func statusSessions(c *gin.Context) {
 }
 
 func getSessions() ([]map[string]interface{}, error) {
+	request := messenger.CreateRequest("dispatch", "GetConntrackTable")
+	reply, err := messenger.SendRequestAndGetReply(request)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("received reply: ", reply)
+
+	// test
 	var sessions []map[string]interface{}
 	m1 := make(map[string]interface{})
 	m1["ping"] = "pong"
@@ -31,6 +40,7 @@ func getSessions() ([]map[string]interface{}, error) {
 	m2["pong"] = "ping"
 	m2["ball"] = "tennis"
 	sessions = append(sessions, m2)
+
 	return sessions, nil
 }
 

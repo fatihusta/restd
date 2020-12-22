@@ -1,11 +1,14 @@
 package messenger
 
 import (
-	"strconv"
+	"errors"
+	"sync"
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
+	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -14,85 +17,104 @@ const (
 )
 
 // Channel to signal these routines to stop
-var serviceShutdown = make (chan bool, 1)
+var serviceShutdown = make (chan struct{})
+var wg sync.WaitGroup
+var socket *zmq.Socket
+var poller *zmq.Poller
+var socErr error
 
 func Startup() {
 	logger.Info("Starting zmq messenger...\n")
-	socket, socErr, poller := setupZmqSocket()
+	socket, socErr, poller = setupZmqSocket()
 	if socErr != nil {
 		logger.Warn("Unable to setup ZMQ sockets")
 	}
 
 	logger.Info("Setting up client socket on zmq socket...\n")
-	go socketClient(socket, poller)
+	wg.Add(1)
+	go keepClientOpen(&wg)
 }
 
 func Shutdown() {
-	serviceShutdown <- true
+	close(serviceShutdown)
+	wg.Wait()
 }
 
-// THIS IS A GOROUTINE
-func socketClient(soc *zmq.Socket, poller *zmq.Poller) {
-	defer soc.Close()
+func keepClientOpen(waitgroup *sync.WaitGroup) {
+	defer socket.Close()
+	defer waitgroup.Done()
 
-	sequence := 0
-	retries_left := REQUEST_RETRIES
-	var socErr error
-	for retries_left > 0 {
-		sequence++
-		// send message
-		logger.Info("Sending ", sequence, "\n")
-		soc.SendMessage(sequence)
-
-		for expect_reply := true; expect_reply; {
-			// Poll socket for a reply, with timeout
-			sockets, err := poller.Poll(REQUEST_TIMEOUT)
-			if err != nil {
-				break // Interrupted
-			}
-
-			//  Here we process a server reply and exit our loop if the
-			//  reply is valid. If we didn't a reply we close the client
-			//  socket and resend the request. We try a number of times
-			//  before finally abandoning:
-
-			if len(sockets) > 0 {
-				//  We got a reply from the server, must match sequence
-				reply, err := soc.RecvMessage(0)
-				if err != nil {
-					break //  Interrupted
-				}
-				seq, _ := strconv.Atoi(reply[0])
-				if seq == sequence {
-					logger.Info("Server replied OK (%s)\n", reply[0], "\n")
-					retries_left = REQUEST_RETRIES
-					expect_reply = false
-				} else {
-					logger.Err("Malformed reply from server: %s\n", reply, "\n")
-				}
-			} else {
-				retries_left--
-				if retries_left == 0 {
-					logger.Err("Server seems to be offline, abandoning\n")
-					break
-				} else {
-					logger.Warn("No response from server, retrying...\n")
-					//  Old socket is confused; close it and open a new one
-					soc.Close()
-					soc, socErr, poller = setupZmqSocket()
-					if socErr != nil {
-						logger.Err("Unable to setup retry ZMQ sockets\n")
-						break
-					}
-					//  Send request again, on new socket
-					soc.SendMessage(sequence)
-				}
-			}
-
+	tick := time.Tick(2 * time.Second)
+	for {
+		select {
+		case <-serviceShutdown:
+			logger.Info("Stop keeping client open\n")
+			return
+		case <-tick:
+			logger.Info("Restd client still open\n")
 		}
 	}
+}
 
-	return
+func CreateRequest(service string, function string) *zreq.ZMQRequest {
+	request := &zreq.ZMQRequest{Service: service, Function: function}
+
+	return request
+}
+
+func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply []string, err error) {
+	retries_left := REQUEST_RETRIES
+	var reply []string
+	var replyErr error
+	// send message
+	logger.Info("Sending ", requestRaw, "\n")
+	// TODO check socket is good
+	request, encodeErr := proto.Marshal(requestRaw)
+	if encodeErr != nil {
+		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
+	}
+	socket.SendMessage(request)
+
+	for expect_reply := true; expect_reply; {
+		// Poll socket for a reply, with timeout
+		sockets, pollErr := poller.Poll(REQUEST_TIMEOUT)
+		if pollErr != nil {
+			return nil, errors.New("Failed to poll socket: " + pollErr.Error())
+		}
+
+		//  Here we process a server reply and exit our loop if the
+		//  reply is valid. If we didn't a reply we close the client
+		//  socket and resend the request. We try a number of times
+		//  before finally abandoning:
+
+		if len(sockets) > 0 {
+			//  We got a reply from the server, must match sequence
+			reply, replyErr = socket.RecvMessage(0)
+			if replyErr != nil {
+				return nil, errors.New("Failed to receive a message: " + replyErr.Error())
+			}
+			logger.Info("Server replied OK (%s)\n", reply[0], "\n")
+			expect_reply = false
+		} else {
+			retries_left--
+			if retries_left == 0 {
+				return nil, errors.New("Server seems to be offline, abandoning")
+			} else {
+				logger.Warn("No response from server, retrying...\n")
+				//  Old socket is confused; close it and open a new one
+				socket.Close()
+				socket, socErr, poller = setupZmqSocket()
+				if socErr != nil {
+					return nil, errors.New("Unable to setup retry ZMQ sockets\n")
+				}
+				//  Send request again, on new socket
+				socket.SendMessage(request)
+			}
+		}
+
+	}
+
+	return reply, nil
 }
 
 func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) {
