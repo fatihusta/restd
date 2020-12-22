@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger" 
+	"github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 )
 
 // statusSessions is the RESTD /api/status/sessions handler
