@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger" 
 	"github.com/untangle/restd/services/messenger"
+	
 )
 
 // statusSessions is the RESTD /api/status/sessions handler
@@ -14,6 +15,7 @@ func statusSessions(c *gin.Context) {
 
 	sessions, err := getSessions()
 	if err != nil {
+		logger.Warn(err.Error(), "\n")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
@@ -30,10 +32,11 @@ func getSessions() ([]map[string]interface{}, error) {
 
 	logger.Info("received reply: ", reply)
 
-	var sessions []map[string]interface{}
-	result := make(map[string]interface{})
-	result["result"] = reply
-	sessions = append(sessions, result)
+	sessions, err := messenger.RetrievePacketdReplyItem(reply)
+	if err != nil {
+		return nil, err
+	}
+
 	return sessions, nil
 }
 

@@ -7,6 +7,7 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
+	prep "github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply"
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"google.golang.org/protobuf/proto"
 )
@@ -62,7 +63,7 @@ func CreateRequest(service string, function string) *zreq.ZMQRequest {
 	return request
 }
 
-func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, err error) {
+func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply [][]byte, err error) {
 	retries_left := REQUEST_RETRIES
 	var reply [][]byte
 	var replyErr error
@@ -71,7 +72,7 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, er
 	// TODO check socket is good
 	request, encodeErr := proto.Marshal(requestRaw)
 	if encodeErr != nil {
-		return "", errors.New("Failed to encode: " +  encodeErr.Error())
+		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
 	}
 	socket.SendMessage(request)
 
@@ -79,7 +80,7 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, er
 		// Poll socket for a reply, with timeout
 		sockets, pollErr := poller.Poll(REQUEST_TIMEOUT)
 		if pollErr != nil {
-			return "", errors.New("Failed to poll socket: " + pollErr.Error())
+			return nil, errors.New("Failed to poll socket: " + pollErr.Error())
 		}
 
 		//  Here we process a server reply and exit our loop if the
@@ -91,21 +92,21 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, er
 			//  We got a reply from the server, must match sequence
 			reply, replyErr = socket.RecvMessageBytes(0)
 			if replyErr != nil {
-				return "", errors.New("Failed to receive a message: " + replyErr.Error())
+				return nil, errors.New("Failed to receive a message: " + replyErr.Error())
 			}
 			logger.Info("Server replied OK (%s)\n", reply[0], "\n")
 			expect_reply = false
 		} else {
 			retries_left--
 			if retries_left == 0 {
-				return "", errors.New("Server seems to be offline, abandoning")
+				return nil, errors.New("Server seems to be offline, abandoning")
 			} else {
 				logger.Warn("No response from server, retrying...\n")
 				//  Old socket is confused; close it and open a new one
 				socket.Close()
 				socket, socErr, poller = setupZmqSocket()
 				if socErr != nil {
-					return "", errors.New("Unable to setup retry ZMQ sockets\n")
+					return nil, errors.New("Unable to setup retry ZMQ sockets\n")
 				}
 				//  Send request again, on new socket
 				socket.SendMessage(request)
@@ -114,11 +115,7 @@ func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply string, er
 
 	}
 
-	unencodedReply := &zreq.ZMQRequest{}
-	if unmarshalErr := proto.Unmarshal(reply[0], unencodedReply); unmarshalErr != nil {
-		return "", unmarshalErr
-	}
-	return unencodedReply.String(), nil
+	return reply, nil
 }
 
 func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) {
@@ -137,4 +134,20 @@ func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) 
 	poller.Add(client, zmq.POLLIN)
 
 	return client, nil, poller
+}
+
+func RetrievePacketdReplyItem(msg [][]byte) ([]map[string]interface{}, error) {
+	unencodedReply := &prep.PacketdReply{}
+	if unmarshalErr := proto.Unmarshal(msg[0], unencodedReply); unmarshalErr != nil {
+		return nil, errors.New("Failed to unencode: " + unmarshalErr.Error())
+	}
+
+	//var result []map[string]interface{}
+	//result = append(result, unencodedReply.Conntracks)
+	var result []map[string]interface{}
+	resultItem := make(map[string]interface{})
+	resultItem["result"] = unencodedReply.Conntracks
+	result = append(result, resultItem)
+
+	return result, nil
 }

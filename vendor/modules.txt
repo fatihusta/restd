@@ -13,7 +13,8 @@ github.com/go-playground/locales/currency
 github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.2.0
 github.com/go-playground/validator/v10
-# github.com/golang/protobuf v1.4.1
+# github.com/golang/protobuf v1.4.3
+github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/proto
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
@@ -29,8 +30,9 @@ github.com/modern-go/reflect2
 github.com/pebbe/zmq4
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
-# github.com/untangle/golang-shared v0.0.0-20201222205621-50030cac67fd
+# github.com/untangle/golang-shared v0.0.0-20201223182702-8f34fda60b52
 github.com/untangle/golang-shared/services/logger
+github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply
 github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest
 github.com/untangle/golang-shared/services/overseer
 # golang.org/x/sys v0.0.0-20200116001909-b77594299b42
@@ -50,17 +52,20 @@ google.golang.org/protobuf/internal/pragma
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/internal/filedesc
 google.golang.org/protobuf/internal/filetype
 google.golang.org/protobuf/internal/impl
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/internal/detrand
 google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/internal/descfmt
 google.golang.org/protobuf/internal/descopts
 google.golang.org/protobuf/internal/encoding/defval
 google.golang.org/protobuf/internal/encoding/tag
 google.golang.org/protobuf/internal/encoding/text
 google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/encoding/json
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
