@@ -16,7 +16,7 @@ func statusSessions(c *gin.Context) {
 	sessions, err := getSessions()
 	if err != nil {
 		logger.Warn(err.Error(), "\n")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

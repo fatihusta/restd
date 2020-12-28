@@ -52,7 +52,7 @@ func keepClientOpen(waitgroup *sync.WaitGroup) {
 			logger.Info("Stop keeping client open\n")
 			return
 		case <-tick:
-			logger.Info("Restd client still open\n")
+			logger.Debug("Restd client still open\n")
 		}
 	}
 }
