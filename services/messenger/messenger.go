@@ -27,6 +27,7 @@ var wg sync.WaitGroup
 var socket *zmq.Socket
 var poller *zmq.Poller
 var socErr error
+var socketMutex sync.RWMutex
 
 func Startup() {
 	logger.Info("Starting zmq messenger...\n")
@@ -62,6 +63,7 @@ func keepClientOpen(waitgroup *sync.WaitGroup) {
 }
 
 func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function) (socketReply [][]byte, err error) {
+	// TODO - need mutexes?
 	retries_left := REQUEST_RETRIES
 	var reply [][]byte
 	var replyErr error
@@ -74,11 +76,15 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 	if encodeErr != nil {
 		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
 	}
+	socketMutex.Lock()
 	socket.SendMessage(request)
+	socketMutex.Unlock()
 
 	for expect_reply := true; expect_reply; {
 		// Poll socket for a reply, with timeout
+		socketMutex.Lock()
 		sockets, pollErr := poller.Poll(REQUEST_TIMEOUT)
+		socketMutex.Unlock()
 		if pollErr != nil {
 			return nil, errors.New("Failed to poll socket: " + pollErr.Error())
 		}
@@ -90,7 +96,9 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 
 		if len(sockets) > 0 {
 			//  We got a reply from the server, must match sequence
+			socketMutex.Lock()
 			reply, replyErr = socket.RecvMessageBytes(0)
+			socketMutex.Unlock()
 			if replyErr != nil {
 				return nil, errors.New("Failed to receive a message: " + replyErr.Error())
 			}
@@ -101,6 +109,7 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 			if retries_left == 0 {
 				return nil, errors.New("Server seems to be offline, abandoning")
 			} else {
+				socketMutex.Lock()
 				logger.Warn("No response from server, retrying...\n")
 				//  Old socket is confused; close it and open a new one
 				socket.Close()
@@ -110,6 +119,7 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 				}
 				//  Send request again, on new socket
 				socket.SendMessage(request)
+				socketMutex.Unlock()
 			}
 		}
 
