@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/restd/services/messenger"
 )
 
 var engine *gin.Engine
@@ -28,7 +29,9 @@ func Startup() {
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
 
-	engine.GET("/test", statusSessions)
+	engine.GET("/testSessions", statusSessions)
+	engine.GET("/testInfo", testInfo)
+	//engine.GET("/testError")
 
 	// files
 	engine.Static("/admin", "/www/admin")
@@ -87,4 +90,22 @@ func ginlogger() gin.HandlerFunc {
 		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v\n", c.Request.Method, c.Request.RequestURI)
 		c.Next()
 	}
+}
+
+func testInfo(c *gin.Context) {
+	logger.Debug("testInfo()\n")
+
+	reply, err := messenger.SendRequestAndGetReply(messenger.PACKETD, messenger.TEST_INFO)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	logger.Debug("received reply: ", reply)
+
+	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TEST_INFO)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, info)
 }

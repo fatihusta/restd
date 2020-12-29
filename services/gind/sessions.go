@@ -24,15 +24,14 @@ func statusSessions(c *gin.Context) {
 }
 
 func getSessions() ([]map[string]interface{}, error) {
-	request := messenger.CreateRequest(messenger.PACKETD, messenger.GET_SESSIONS)
-	reply, err := messenger.SendRequestAndGetReply(request)
+	reply, err := messenger.SendRequestAndGetReply(messenger.PACKETD, messenger.GET_SESSIONS)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Debug("received reply: ", reply)
 
-	sessions, err := messenger.RetrievePacketdReplyItem(reply)
+	sessions, err := messenger.RetrievePacketdReplyItem(reply, messenger.GET_SESSIONS)
 	if err != nil {
 		return nil, err
 	}

@@ -61,20 +61,16 @@ func keepClientOpen(waitgroup *sync.WaitGroup) {
 	}
 }
 
-func CreateRequest(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function) *zreq.ZMQRequest {
-	request := &zreq.ZMQRequest{Service: service, Function: function}
-
-	return request
-}
-
-func SendRequestAndGetReply(requestRaw *zreq.ZMQRequest) (socketReply [][]byte, err error) {
+func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function) (socketReply [][]byte, err error) {
 	retries_left := REQUEST_RETRIES
 	var reply [][]byte
 	var replyErr error
+	// create request 
+	zmqRequest := &zreq.ZMQRequest{Service: service, Function: function}
 	// send message
-	logger.Info("Sending ", requestRaw, "\n")
+	logger.Info("Sending ", zmqRequest, "\n")
 	// TODO check socket is good
-	request, encodeErr := proto.Marshal(requestRaw)
+	request, encodeErr := proto.Marshal(zmqRequest)
 	if encodeErr != nil {
 		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
 	}
@@ -140,17 +136,20 @@ func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) 
 	return client, nil, poller
 }
 
-func RetrievePacketdReplyItem(msg [][]byte) ([]map[string]interface{}, error) {
+func RetrievePacketdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) ([]map[string]interface{}, error) {
 	unencodedReply := &prep.PacketdReply{}
 	if unmarshalErr := proto.Unmarshal(msg[0], unencodedReply); unmarshalErr != nil {
 		return nil, errors.New("Failed to unencode: " + unmarshalErr.Error())
 	}
 
-	//var result []map[string]interface{}
-	//result = append(result, unencodedReply.Conntracks)
 	var result []map[string]interface{}
 	resultItem := make(map[string]interface{})
-	resultItem["result"] = unencodedReply.Conntracks
+	switch function {
+	case GET_SESSIONS:
+		resultItem["result"] = unencodedReply.Conntracks
+	case TEST_INFO:
+		resultItem["result"] = unencodedReply.TestInfo
+	}
 	result = append(result, resultItem)
 
 	return result, nil
