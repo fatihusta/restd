@@ -24,13 +24,13 @@ func statusSessions(c *gin.Context) {
 }
 
 func getSessions() ([]map[string]interface{}, error) {
-	request := messenger.CreateRequest("dispatch", "GetConntrackTable")
+	request := messenger.CreateRequest(messenger.PACKETD, messenger.GET_SESSIONS)
 	reply, err := messenger.SendRequestAndGetReply(request)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Info("received reply: ", reply)
+	logger.Debug("received reply: ", reply)
 
 	sessions, err := messenger.RetrievePacketdReplyItem(reply)
 	if err != nil {

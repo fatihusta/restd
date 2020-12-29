@@ -15,6 +15,10 @@ import (
 const (
 	REQUEST_TIMEOUT = 2500 * time.Millisecond
 	REQUEST_RETRIES = 3
+	PACKETD = zreq.ZMQRequest_PACKETD
+	REPORTD = zreq.ZMQRequest_REPORTD
+	TEST_INFO = zreq.ZMQRequest_TEST_INFO
+	GET_SESSIONS = zreq.ZMQRequest_GET_SESSIONS
 )
 
 // Channel to signal these routines to stop
@@ -57,7 +61,7 @@ func keepClientOpen(waitgroup *sync.WaitGroup) {
 	}
 }
 
-func CreateRequest(service string, function string) *zreq.ZMQRequest {
+func CreateRequest(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function) *zreq.ZMQRequest {
 	request := &zreq.ZMQRequest{Service: service, Function: function}
 
 	return request
