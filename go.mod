@@ -8,7 +8,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/pebbe/zmq4 v1.2.2
-	github.com/untangle/golang-shared v0.0.0-20201229175652-4a167ac15008
+	github.com/untangle/golang-shared v0.0.0-20201229232111-b260da908617
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

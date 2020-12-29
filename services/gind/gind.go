@@ -98,6 +98,7 @@ func testInfo(c *gin.Context) {
 	reply, err := messenger.SendRequestAndGetReply(messenger.PACKETD, messenger.TEST_INFO)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	logger.Debug("received reply: ", reply)
@@ -105,6 +106,7 @@ func testInfo(c *gin.Context) {
 	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TEST_INFO)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, info)

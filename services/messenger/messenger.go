@@ -102,11 +102,15 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 			if replyErr != nil {
 				return nil, errors.New("Failed to receive a message: " + replyErr.Error())
 			}
+			if len(reply[0]) == 0 {
+				return nil, errors.New("Failed to create server error message, but there was a server error")
+			}
 			logger.Info("Server replied OK (%s)\n", reply[0], "\n")
 			expect_reply = false
 		} else {
 			retries_left--
 			if retries_left == 0 {
+				logger.Warn("Server seems to be offline, abandoning\n")
 				return nil, errors.New("Server seems to be offline, abandoning")
 			} else {
 				socketMutex.Lock()
@@ -148,8 +152,13 @@ func setupZmqSocket() (soc *zmq.Socket, SocErr error, clientPoller *zmq.Poller) 
 
 func RetrievePacketdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) ([]map[string]interface{}, error) {
 	unencodedReply := &prep.PacketdReply{}
-	if unmarshalErr := proto.Unmarshal(msg[0], unencodedReply); unmarshalErr != nil {
+	unmarshalErr := proto.Unmarshal(msg[0], unencodedReply)
+	if unmarshalErr != nil {
 		return nil, errors.New("Failed to unencode: " + unmarshalErr.Error())
+	}
+
+	if len(unencodedReply.ServerError) != 0 {
+		return nil, errors.New(unencodedReply.ServerError)
 	}
 
 	var result []map[string]interface{}
