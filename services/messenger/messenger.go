@@ -168,6 +168,8 @@ func RetrievePacketdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) (
 		resultItem["result"] = unencodedReply.Conntracks
 	case TEST_INFO:
 		resultItem["result"] = unencodedReply.TestInfo
+	default:
+		resultItem["result"] = nil
 	}
 	result = append(result, resultItem)
 
