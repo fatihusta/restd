@@ -14,8 +14,9 @@ import (
 var engine *gin.Engine
 var logsrc = "gin"
 
+// Startup starts the gin server
 func Startup() {
-
+	// Set some gin properties
 	gin.SetMode(gin.ReleaseMode)
 	gin.DisableConsoleColor()
 	gin.DefaultWriter = logger.NewLogWriter(logsrc)
@@ -23,12 +24,13 @@ func Startup() {
 		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
 	}
 	
-
+	// Create gin engine 
 	engine = gin.New()
 	engine.Use(ginlogger())
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
 
+	// API endpoints
 	engine.GET("/testSessions", statusSessions)
 	engine.GET("/testInfo", testInfo)
 	//engine.GET("/testError")
@@ -52,6 +54,7 @@ func Startup() {
 	
 }
 
+// Shutdown function here to stop gind service 
 func Shutdown() {
 
 }
@@ -76,6 +79,7 @@ func noRouteHandler(c *gin.Context) {
 	// otherwise browser will default to its 404 handler
 }
 
+// addHeaders adds the gin headers 
 func addHeaders(c *gin.Context) {
 	c.Header("Cache-Control", "must-revalidate")
 	// c.Header("Example-Header", "foo")
@@ -85,6 +89,7 @@ func addHeaders(c *gin.Context) {
 	c.Next()
 }
 
+// ginLogger creates function for logging
 func ginlogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v\n", c.Request.Method, c.Request.RequestURI)
@@ -92,10 +97,13 @@ func ginlogger() gin.HandlerFunc {
 	}
 }
 
+// testInfo sends request and parses the testInfo packetd response for testing ZMQ and restd
+// basic format for gin handlers 
 func testInfo(c *gin.Context) {
 	logger.Debug("testInfo()\n")
 
-	reply, err := messenger.SendRequestAndGetReply(messenger.PACKETD, messenger.TEST_INFO)
+	// Send the PACKETD TEST_INFO request and get the reply
+	reply, err := messenger.SendRequestAndGetReply(messenger.Packetd, messenger.TestInfo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -103,7 +111,8 @@ func testInfo(c *gin.Context) {
 
 	logger.Debug("received reply: ", reply)
 
-	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TEST_INFO)
+	// Retrieve the TEST_INFO information
+	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TestInfo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -19,6 +19,7 @@ import (
 var shutdownFlag uint32
 var shutdownChannel = make (chan bool)
 
+/* main function for restd */
 func main() {
 	// Check we are root user
 	userinfo, err := user.Current()
@@ -42,17 +43,19 @@ func main() {
 	// Start services
 	startServices()
 
+	// Handle the stop signals 
 	handleSignals()
 
+	// Keep restd running while the shutdown flag is false
+	// shutdown once flag is true or the shutdownChannel indicates a shutdown
 	for !GetShutdownFlag() {
 		select {
 		case <-shutdownChannel:
 			logger.Info("Shutdown channel initiated... %v\n", GetShutdownFlag())
-		case <-time.After(2 * time.Second):
+		case <-time.After(2 * time.Minute):
 			logger.Debug("restd is running...\n")
-			// TODO - get rid of printStats
-			// logger.Info("\n")
-			// printStats()
+			logger.Info("\n")
+			printStats()
 		}
 	}
 
@@ -61,17 +64,20 @@ func main() {
 
 }
 
+/* startServices starts the gin server and ZMQ messenger */
 func startServices() {
 	gind.Startup()
 	messenger.Startup()
 }
 
+/* stopServices stops the gin server, ZMQ messenger, and logger*/
 func stopServices() {
 	gind.Shutdown()
 	messenger.Shutdown()
 	logger.Shutdown()
 }
 
+/* handleSignals handles SIGINT, SIGTERM, and SIGQUIT signals */
 func handleSignals() {
 	// Add SIGINT & SIGTERM handler (exit)
 	termch := make(chan os.Signal, 1)
@@ -106,7 +112,7 @@ func dumpStack() {
 	logger.Warn("Thread dump complete.\n")
 }
 
-// prints some basic stats about packetd
+// prints some basic stats about restd
 func printStats() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
