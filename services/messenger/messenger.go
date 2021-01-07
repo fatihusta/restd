@@ -37,6 +37,10 @@ var wg sync.WaitGroup
 var socket *zmq.Socket
 var poller *zmq.Poller
 var socErr error
+
+// Use a mutex to lock/unlock use of the socket. In the lazy pirate reliability pattern, the socket is closed
+// and recreated to attempt to connect to the server again. Since the socket is being closed/recreated, we don't want
+// multiple requests trying to handle the same socket. 
 var socketMutex sync.RWMutex
 
 // Startup starts up the zmq messenger for restd
@@ -141,6 +145,7 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 			socket.Close()
 			socket, poller, socErr = setupZmqSocket()
 			if socErr != nil {
+				socketMutex.Unlock()
 				return nil, errors.New("Unable to setup retry ZMQ sockets")
 			}
 			//  Send request again, on new socket
