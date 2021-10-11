@@ -1,0 +1,29 @@
+version: '2'
+services:
+    musl:
+      image: untangleinc/restd:build-musl
+      volumes:
+        - ..:/go/restd
+
+    glibc:
+      image: untangleinc/restd:build-glibc
+      volumes:
+        - ..:/go/restd
+
+    # the next 2 services allow for local changes and tests to the
+    # docker images, before pushing new official ones to GitHub: the
+    # build images are being built locally
+
+    musl-local:
+      build:
+        context: .
+        dockerfile: Dockerfile.build-musl
+      volumes:
+        - ..:/go/restd
+
+    glibc-local:
+      build:
+        context: .
+        dockerfile: Dockerfile.build-glibc
+      volumes:
+        - ..:/go/restd

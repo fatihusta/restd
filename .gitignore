@@ -1,0 +1,12 @@
+cmd/restd/restd
+cmd/restd/restd-*
+core
+.go_work/
+.pkgdir/
+ipkg-x86_64/
+.built
+.built_check
+.configured_*
+.prepared
+.quilt_checked
+.source_dir
