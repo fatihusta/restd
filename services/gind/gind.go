@@ -3,11 +3,12 @@ package gind
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"strings"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/restd/services/certmanager"
 	"github.com/untangle/restd/services/messenger"
 )
 
@@ -23,8 +24,8 @@ func Startup() {
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
 		logger.LogMessageSource(logger.LogLevelDebug, logsrc, "%v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
 	}
-	
-	// Create gin engine 
+
+	// Create gin engine
 	engine = gin.New()
 	engine.Use(ginlogger())
 	engine.Use(gin.Recovery())
@@ -45,16 +46,16 @@ func Startup() {
 	engine.NoRoute(noRouteHandler)
 
 	// listen and serve on 0.0.0.0:80
-	// TODO change to :80 once take out packetd restd
-	go engine.Run(":8080")
+	go engine.Run(":80")
+
+	cert, key := certmanager.GetConfiguredCert()
+	go engine.RunTLS(":443", cert, key)
 
 	logger.Info("The RestD engine has been started\n")
-	
 
-	
 }
 
-// Shutdown function here to stop gind service 
+// Shutdown function here to stop gind service
 func Shutdown() {
 
 }
@@ -79,7 +80,7 @@ func noRouteHandler(c *gin.Context) {
 	// otherwise browser will default to its 404 handler
 }
 
-// addHeaders adds the gin headers 
+// addHeaders adds the gin headers
 func addHeaders(c *gin.Context) {
 	c.Header("Cache-Control", "must-revalidate")
 	// c.Header("Example-Header", "foo")
@@ -98,7 +99,7 @@ func ginlogger() gin.HandlerFunc {
 }
 
 // testInfo sends request and parses the testInfo packetd response for testing ZMQ and restd
-// basic format for gin handlers 
+// basic format for gin handlers
 func testInfo(c *gin.Context) {
 	logger.Debug("testInfo()\n")
 
