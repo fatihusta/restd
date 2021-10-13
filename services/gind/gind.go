@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/golang-shared/services/settings"
@@ -33,6 +35,11 @@ func Startup() {
 	engine.Use(ginlogger())
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
+
+	store := cookie.NewStore([]byte(GenerateRandomString(32)))
+
+	engine.Use(sessions.Sessions("auth_session", store))
+	engine.Use(addTokenToSession)
 
 	engine.GET("/", rootHandler)
 
@@ -185,4 +192,21 @@ func statusUID(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, uid)
+}
+
+// addTokenToSession checks for a "token" argument, and adds it to the session
+// this is easier than passing it around among redirects
+func addTokenToSession(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		return
+	}
+	logger.Info("Saving token in session: %v\n", token)
+	session := sessions.Default(c)
+	session.Set("token", token)
+	err := session.Save()
+	if err != nil {
+		logger.Warn("Error saving session: %s\n", err.Error())
+	}
+	authRequired()
 }
