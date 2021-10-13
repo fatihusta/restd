@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"path"
+	"reflect"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/settings"
 	"github.com/untangle/restd/services/certmanager"
 	"github.com/untangle/restd/services/messenger"
 )
@@ -31,17 +34,19 @@ func Startup() {
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
 
+	engine.GET("/", rootHandler)
+
 	// API endpoints
 	engine.GET("/testSessions", statusSessions)
 	engine.GET("/testInfo", testInfo)
 	//engine.GET("/testError")
 
+	api := engine.Group("/api")
+	api.GET("/status/uid", statusUID)
+
 	// files
 	engine.Static("/admin", "/www/admin")
-	engine.Static("/settings", "/www/settings")
-	engine.Static("/reports", "/www/reports")
-	engine.Static("/setup", "/www/setup")
-	engine.Static("/static", "/www/static")
+
 	// handle 404 routes
 	engine.NoRoute(noRouteHandler)
 
@@ -76,7 +81,19 @@ func noRouteHandler(c *gin.Context) {
 	// MFW-704 - return 200 for JS map files requested by Safari on Mac
 	if strings.Contains(c.Request.URL.Path, ".js.map") {
 		c.String(http.StatusOK, "")
+		return
 	}
+
+	// check if the route is for the admin SPA
+	if strings.HasPrefix(c.Request.URL.Path, "/admin/") {
+		// check if it is a tidy URL route and not a file request
+		ext := path.Ext(c.Request.RequestURI)
+		if ext == "" {
+			c.File("/www/admin/index.html")
+			return
+		}
+	}
+
 	// otherwise browser will default to its 404 handler
 }
 
@@ -120,4 +137,46 @@ func testInfo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, info)
+}
+
+func rootHandler(c *gin.Context) {
+	if isSetupWizardCompleted() {
+		c.Redirect(http.StatusTemporaryRedirect, "/admin")
+	} else {
+		c.Redirect(http.StatusTemporaryRedirect, "/admin/setup")
+	}
+}
+
+// returns true if the setup wizard is completed, or false if not
+// if any error occurs it returns true (assumes the wizard is completed)
+func isSetupWizardCompleted() bool {
+	wizardCompletedJSON, err := settings.GetSettings([]string{"system", "setupWizard", "completed"})
+	if err != nil {
+		logger.Warn("Failed to read setup wizard completed settings: %v\n", err.Error())
+		return true
+	}
+	if wizardCompletedJSON == nil {
+		logger.Warn("Failed to read setup wizard completed settings: %v\n", wizardCompletedJSON)
+		return true
+	}
+	wizardCompletedBool, ok := wizardCompletedJSON.(bool)
+	if !ok {
+		logger.Warn("Invalid type of setup wizard completed setting: %v %v\n", wizardCompletedJSON, reflect.TypeOf(wizardCompletedJSON))
+		return true
+	}
+
+	return wizardCompletedBool
+}
+
+// statusUID returns the UID of the system
+func statusUID(c *gin.Context) {
+	logger.Debug("statusUID()\n")
+
+	uid, err := settings.GetUIDOpenwrt()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+
+	c.String(http.StatusOK, uid)
 }
