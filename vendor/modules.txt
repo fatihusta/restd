@@ -1,3 +1,12 @@
+# github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962
+github.com/GehirnInc/crypt
+github.com/GehirnInc/crypt/common
+github.com/GehirnInc/crypt/internal
+github.com/GehirnInc/crypt/md5_crypt
+# github.com/gbrlsnchs/jwt/v3 v3.0.0-beta.0
+github.com/gbrlsnchs/jwt/v3
+# github.com/gin-contrib/sessions v0.0.3
+github.com/gin-contrib/sessions
 # github.com/gin-contrib/sse v0.1.0
 github.com/gin-contrib/sse
 # github.com/gin-gonic/gin v1.7.4
@@ -16,6 +25,12 @@ github.com/go-playground/validator/v10
 # github.com/golang/protobuf v1.5.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes/struct
+# github.com/gorilla/context v1.1.1
+github.com/gorilla/context
+# github.com/gorilla/securecookie v1.1.1
+github.com/gorilla/securecookie
+# github.com/gorilla/sessions v1.1.3
+github.com/gorilla/sessions
 # github.com/json-iterator/go v1.1.12
 github.com/json-iterator/go
 # github.com/leodido/go-urn v1.2.1
@@ -37,6 +52,8 @@ github.com/untangle/golang-shared/services/settings
 github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply
 github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest
 # golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/sha3
 # golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac
 golang.org/x/sys/cpu

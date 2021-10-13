@@ -41,7 +41,13 @@ func Startup() {
 	engine.GET("/testInfo", testInfo)
 	//engine.GET("/testError")
 
+	engine.POST("/account/login", authRequired())
+	engine.POST("/account/logout", authLogout)
+	engine.GET("/account/logout", authLogout)
+	engine.GET("/account/status", authStatus)
+
 	api := engine.Group("/api")
+	api.Use(authRequired())
 	api.GET("/status/uid", statusUID)
 
 	// files
