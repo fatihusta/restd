@@ -127,6 +127,10 @@ func Startup() {
 	// todo replace with fetch-licenses routes
 	api.Any("/factory-reset", packetdProxy)
 
+	// todo replace with upgrade handlers
+	api.POST("/sysupgrade", packetdProxy)
+	api.POST("/upgrade", packetdProxy)
+
 	// todo replace with reboot/shutdown handlers
 	api.Any("/reboot", packetdProxy)
 	api.Any("/shutdown", packetdProxy)
