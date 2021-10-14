@@ -164,7 +164,7 @@ func packetdProxy(c *gin.Context) {
 
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	//Define the director func
-	//This is a good place to log, for example
+
 	proxy.Director = func(req *http.Request) {
 		req.Header = c.Request.Header
 		req.Host = remote.Host
