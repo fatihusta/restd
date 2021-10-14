@@ -82,6 +82,7 @@ func Startup() {
 	api.GET("/status/wifimodelist/:device", packetdProxy)
 	api.GET("/status/diagnostics", packetdProxy)
 
+	// todo replace with threatprevention host
 	api.GET("/threatprevention/lookup/:host", packetdProxy)
 
 	// todo replace with settings routes
@@ -126,13 +127,16 @@ func Startup() {
 	// todo replace with fetch-licenses routes
 	api.Any("/factory-reset", packetdProxy)
 
+	// todo replace with reboot/shutdown handlers
 	api.Any("/reboot", packetdProxy)
 	api.Any("/shutdown", packetdProxy)
 
+	// todo replace with dhcp handlers
 	api.POST("/releasedhcp/:device", packetdProxy)
 	api.POST("/renewdhcp/:device", packetdProxy)
 
 	prof := engine.Group("/pprof")
+	// todo replace with prof handlers
 	prof.Any("/*path", packetdProxy)
 
 	// files
