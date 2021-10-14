@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"path"
 	"reflect"
 	"strings"
@@ -57,6 +59,82 @@ func Startup() {
 	api.Use(authRequired())
 	api.GET("/status/uid", statusUID)
 
+	// replace packetdProxy with handlers
+	api.GET("/status/sessions", packetdProxy)
+	api.GET("/status/system", packetdProxy)
+	api.GET("/status/hardware", packetdProxy)
+	api.GET("/status/upgrade", packetdProxy)
+	api.GET("/status/build", packetdProxy)
+	api.GET("/status/license", packetdProxy)
+	api.GET("/status/wantest/:device", packetdProxy)
+	api.GET("/status/command/find_account", packetdProxy)
+	api.GET("/status/interfaces/:device", packetdProxy)
+	api.GET("/status/arp/", packetdProxy)
+	api.GET("/status/arp/:device", packetdProxy)
+	api.GET("/status/dhcp", packetdProxy)
+	api.GET("/status/route", packetdProxy)
+	api.GET("/status/routetables", packetdProxy)
+	api.GET("/status/route/:table", packetdProxy)
+	api.GET("/status/rules", packetdProxy)
+	api.GET("/status/routerules", packetdProxy)
+	api.GET("/status/wwan/:device", packetdProxy)
+	api.GET("/status/wifichannels/:device", packetdProxy)
+	api.GET("/status/wifimodelist/:device", packetdProxy)
+	api.GET("/status/diagnostics", packetdProxy)
+
+	api.GET("/threatprevention/lookup/:host", packetdProxy)
+
+	// todo replace with settings routes
+	api.Any("/settings/*path", packetdProxy)
+
+	// todo replace with defaults routes
+	api.Any("/defaults/*path", packetdProxy)
+
+	// todo replace with reports routes
+	api.Any("/reports/*path", packetdProxy)
+
+	// todo replace with warehouse routes
+	api.Any("/warehouse/*path", packetdProxy)
+
+	// todo replace with netspace routess
+	api.Any("/netspace/*path", packetdProxy)
+
+	// todo replace with license routes
+	api.Any("/license/*path", packetdProxy)
+
+	// todo replace with logging routes
+	api.Any("/logging/*path", packetdProxy)
+
+	// todo replace with wireguard routes
+	api.Any("/wireguard/*path", packetdProxy)
+
+	// todo replace with classify routes
+	api.Any("/classify/*path", packetdProxy)
+
+	// todo replace with logger routes
+	api.Any("/logger/*path", packetdProxy)
+
+	// todo replace with logging routes
+	api.Any("/debug", packetdProxy)
+
+	// todo replace with gc routes
+	api.Any("/gc", packetdProxy)
+
+	// todo replace with fetch-licenses routes
+	api.Any("/fetch-licenses", packetdProxy)
+
+	// todo replace with fetch-licenses routes
+	api.Any("/factory-reset", packetdProxy)
+
+	api.Any("/reboot", packetdProxy)
+	api.Any("/shutdown", packetdProxy)
+
+	api.POST("/releasedhcp/:device", packetdProxy)
+	api.POST("/renewdhcp/:device", packetdProxy)
+
+	prof := engine.Group("/pprof")
+	prof.Any("/*path", packetdProxy)
+
 	// files
 	engine.Static("/admin", "/www/admin")
 
@@ -76,6 +154,28 @@ func Startup() {
 // Shutdown function here to stop gind service
 func Shutdown() {
 
+}
+
+func packetdProxy(c *gin.Context) {
+	remote, err := url.Parse("http://localhost:81")
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	//Define the director func
+	//This is a good place to log, for example
+	proxy.Director = func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = c.Request.URL.Path
+		logger.Info("c request: %v\n", c.Request.URL.Path)
+		logger.Info("req url: %s\n", remote.Path)
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 // GenerateRandomString generates a random string of the specified length
