@@ -171,8 +171,6 @@ func packetdProxy(c *gin.Context) {
 		req.URL.Scheme = remote.Scheme
 		req.URL.Host = remote.Host
 		req.URL.Path = c.Request.URL.Path
-		logger.Info("c request: %v\n", c.Request.URL.Path)
-		logger.Info("req url: %s\n", remote.Path)
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
