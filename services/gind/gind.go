@@ -86,10 +86,15 @@ func Startup() {
 	api.GET("/threatprevention/lookup/:host", packetdProxy)
 
 	// todo replace with settings routes
-	api.Any("/settings/*path", packetdProxy)
+	api.GET("/settings", getSettings)
+	api.GET("/settings/*path", getSettings)
+	api.POST("/settings", setSettings)
+	api.POST("/settings/*path", setSettings)
+	api.DELETE("/settings", deleteSettings)
+	api.DELETE("/settings/*path", deleteSettings)
 
-	// todo replace with defaults routes
-	api.Any("/defaults/*path", packetdProxy)
+	api.GET("/defaults", getDefaultSettings)
+	api.GET("/defaults/*path", getDefaultSettings)
 
 	// todo replace with reports routes
 	api.Any("/reports/*path", packetdProxy)
