@@ -3,6 +3,8 @@ github.com/GehirnInc/crypt
 github.com/GehirnInc/crypt/common
 github.com/GehirnInc/crypt/internal
 github.com/GehirnInc/crypt/md5_crypt
+# github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
+github.com/c9s/goprocinfo/linux
 # github.com/gbrlsnchs/jwt/v3 v3.0.0-beta.0
 github.com/gbrlsnchs/jwt/v3
 # github.com/gin-contrib/sessions v0.0.3
