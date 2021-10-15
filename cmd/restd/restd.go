@@ -70,6 +70,7 @@ func startServices() {
 	gind.Startup()
 	messenger.Startup()
 	certmanager.Startup()
+	messenger.Startup()
 }
 
 /* stopServices stops the gin server, ZMQ messenger, and logger*/
@@ -78,6 +79,7 @@ func stopServices() {
 	messenger.Shutdown()
 	logger.Shutdown()
 	certmanager.Shutdown()
+	messenger.Shutdown()
 }
 
 /* handleSignals handles SIGINT, SIGTERM, and SIGQUIT signals */

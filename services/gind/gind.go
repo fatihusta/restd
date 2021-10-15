@@ -16,7 +16,6 @@ import (
 	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/golang-shared/services/settings"
 	"github.com/untangle/restd/services/certmanager"
-	"github.com/untangle/restd/services/messenger"
 )
 
 var engine *gin.Engine
@@ -46,8 +45,8 @@ func Startup() {
 	engine.GET("/", rootHandler)
 
 	// API endpoints
-	engine.GET("/testSessions", statusSessions)
-	engine.GET("/testInfo", testInfo)
+	//engine.GET("/testSessions", statusSessions)
+	//engine.GET("/testInfo", testInfo)
 	//engine.GET("/testError")
 
 	engine.POST("/account/login", authRequired())
@@ -91,8 +90,9 @@ func Startup() {
 	// todo replace with defaults routes
 	api.Any("/defaults/*path", packetdProxy)
 
-	// todo replace with reports routes
-	api.Any("/reports/*path", packetdProxy)
+	api.POST("/reports/create_query", reportsCreateQuery)
+	api.GET("/reports/get_data/:query_id", reportsGetData)
+	api.POST("/reports/close_query/:query_id", reportsCloseQuery)
 
 	// todo replace with warehouse routes
 	api.Any("/warehouse/*path", packetdProxy)
@@ -236,27 +236,27 @@ func ginlogger() gin.HandlerFunc {
 
 // testInfo sends request and parses the testInfo packetd response for testing ZMQ and restd
 // basic format for gin handlers
-func testInfo(c *gin.Context) {
-	logger.Debug("testInfo()\n")
+// func testInfo(c *gin.Context) {
+// 	logger.Debug("testInfo()\n")
 
-	// Send the PACKETD TEST_INFO request and get the reply
-	reply, err := messenger.SendRequestAndGetReply(messenger.Packetd, messenger.TestInfo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	// Send the PACKETD TEST_INFO request and get the reply
+// 	reply, err := messenger.SendRequestAndGetReply(messenger.Packetd, messenger.TestInfo)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	logger.Debug("received reply: ", reply)
+// 	logger.Debug("received reply: ", reply)
 
-	// Retrieve the TEST_INFO information
-	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TestInfo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	// Retrieve the TEST_INFO information
+// 	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TestInfo)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	c.JSON(http.StatusOK, info)
-}
+// 	c.JSON(http.StatusOK, info)
+// }
 
 func rootHandler(c *gin.Context) {
 	if isSetupWizardCompleted() {

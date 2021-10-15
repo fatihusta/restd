@@ -8,6 +8,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
 	prep "github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply"
+	rrep "github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply"
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"google.golang.org/protobuf/proto"
 )
@@ -25,14 +26,16 @@ const (
 	// Reportd is ZMQRequest REPORTD service type, for sending requests to reportd
 	Reportd = zreq.ZMQRequest_REPORTD
 
-	// TestInfo ZMQRequest TEST_INFO function type - for retrieving test info from packetd
-	TestInfo = zreq.ZMQRequest_TEST_INFO
-	// GetSessions - ZMQRequest GET_SESSIONS function type - for retrieving conntracks/sessions map from packetd
-	GetSessions = zreq.ZMQRequest_GET_SESSIONS
+	// QueryCreate is the ZMQRequest QUERY_CREATE function
+	QueryCreate = zreq.ZMQRequest_QUERY_CREATE
+	// QueryData is the ZMQRequest QUERY_DATA function
+	QueryData = zreq.ZMQRequest_QUERY_DATA
+	// QueryClose is the ZMQRequest QUERY_CLOSE function
+	QueryClose = zreq.ZMQRequest_QUERY_CLOSE
 )
 
 // Channel to signal these routines to stop, waitgroup, socket and poller, socket error, and socket mutex
-var serviceShutdown = make (chan struct{})
+var serviceShutdown = make(chan struct{})
 var wg sync.WaitGroup
 var socket *zmq.Socket
 var poller *zmq.Poller
@@ -40,7 +43,7 @@ var socErr error
 
 // Use a mutex to lock/unlock use of the socket. In the lazy pirate reliability pattern, the socket is closed
 // and recreated to attempt to connect to the server again. Since the socket is being closed/recreated, we don't want
-// multiple requests trying to handle the same socket. 
+// multiple requests trying to handle the same socket.
 var socketMutex sync.RWMutex
 
 // Startup starts up the zmq messenger for restd
@@ -84,19 +87,19 @@ func keepClientOpen(waitgroup *sync.WaitGroup) {
 }
 
 // SendRequestAndGetReply receives a ZMQrequest from the gin server, sends it, and sends the reply back to the gin server
-func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function) (socketReply [][]byte, err error) {
+func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRequest_Function, data string) (socketReply [][]byte, err error) {
 	// TODO - need mutexes?
 	retriesLeft := RequestRetries
 	var reply [][]byte
 	var replyErr error
-	// create request 
-	zmqRequest := &zreq.ZMQRequest{Service: service, Function: function}
+	// create request
+	zmqRequest := &zreq.ZMQRequest{Service: service, Function: function, Data: data}
 	// send message
 	// TODO check socket is good
 	logger.Debug("Sending ", zmqRequest, "\n")
 	request, encodeErr := proto.Marshal(zmqRequest)
 	if encodeErr != nil {
-		return nil, errors.New("Failed to encode: " +  encodeErr.Error())
+		return nil, errors.New("Failed to encode: " + encodeErr.Error())
 	}
 	socketMutex.Lock()
 	socket.SendMessage(request)
@@ -137,7 +140,7 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 			if retriesLeft == 0 {
 				logger.Warn("Server seems to be offline, abandoning\n")
 				return nil, errors.New("Server seems to be offline, abandoning")
-			} 
+			}
 			// recreate socket and try to resend
 			socketMutex.Lock()
 			logger.Warn("No response from server, retrying...\n")
@@ -167,7 +170,7 @@ func setupZmqSocket() (soc *zmq.Socket, clientPoller *zmq.Poller, SocErr error) 
 	}
 
 	// TODO we should read a file created by packetd that contains a randomized
-	// ZMQ port to lsiten on 
+	// ZMQ port to lsiten on
 	client.Connect("tcp://localhost:5555")
 
 	// Create poller for polling for results. If nothing is polled, retries are attempted
@@ -175,6 +178,36 @@ func setupZmqSocket() (soc *zmq.Socket, clientPoller *zmq.Poller, SocErr error) 
 	poller.Add(client, zmq.POLLIN)
 
 	return client, poller, nil
+}
+
+// RetrieveReportdReplyItem retrieves the proper items needed from a ReportdReply
+func RetrieveReportdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) (map[string]interface{}, error) {
+	// Unencode the reply
+	unencodedReply := &rrep.ReportdReply{}
+	unmarshalErr := proto.Unmarshal(msg[0], unencodedReply)
+	if unmarshalErr != nil {
+		return nil, errors.New("Failed to unencode: " + unmarshalErr.Error())
+	}
+
+	// If a serverError exists, return it
+	if len(unencodedReply.ServerError) != 0 {
+		return nil, errors.New(unencodedReply.ServerError)
+	}
+
+	// Based on function, set the result to the right protobuf data structure
+	resultItem := make(map[string]interface{})
+	switch function {
+	case QueryCreate:
+		resultItem["result"] = unencodedReply.QueryCreate
+	case QueryData:
+		resultItem["result"] = unencodedReply.QueryData
+	case QueryClose:
+		resultItem["result"] = unencodedReply.QueryClose
+	default:
+		resultItem["result"] = nil
+	}
+
+	return resultItem, nil
 }
 
 // RetrievePacketdReplyItem retrieves the proper items needed from a PacketdReply
@@ -195,10 +228,10 @@ func RetrievePacketdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) (
 	var result []map[string]interface{}
 	resultItem := make(map[string]interface{})
 	switch function {
-	case GetSessions:
-		resultItem["result"] = unencodedReply.Conntracks
-	case TestInfo:
-		resultItem["result"] = unencodedReply.TestInfo
+	// case GetSessions:
+	// 	resultItem["result"] = unencodedReply.Conntracks
+	// case TestInfo:
+	// 	resultItem["result"] = unencodedReply.TestInfo
 	default:
 		resultItem["result"] = nil
 	}

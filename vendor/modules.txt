@@ -51,6 +51,7 @@ github.com/untangle/golang-shared/services/logger
 github.com/untangle/golang-shared/services/overseer
 github.com/untangle/golang-shared/services/settings
 github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply
+github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply
 github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest
 # golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 golang.org/x/crypto/ed25519
