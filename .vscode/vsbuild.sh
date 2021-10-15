@@ -26,6 +26,8 @@ else
     docker-compose -f build/docker-compose.build.yml up --build musl
 fi
 
+ssh-copy-id root@$TARGET
+
 if [ "$BACKUP" = true ]
 then
     now=`date +"%N"`

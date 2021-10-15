@@ -132,7 +132,7 @@ func SendRequestAndGetReply(service zreq.ZMQRequest_Service, function zreq.ZMQRe
 			if len(reply[0]) == 0 {
 				return nil, errors.New("Failed to create server error message, but there was a server error")
 			}
-			logger.Info("Server replied OK (%s)\n", reply[0], "\n")
+			logger.Debug("Server replied OK (%s)\n", reply[0], "\n")
 			expectReply = false
 		} else {
 			// continue retrying until retries_left is exhausted
