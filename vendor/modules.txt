@@ -49,6 +49,7 @@ github.com/pebbe/zmq4
 # github.com/ugorji/go/codec v1.2.6
 github.com/ugorji/go/codec
 # github.com/untangle/golang-shared v0.2.4
+github.com/untangle/golang-shared/services/licensemanager
 github.com/untangle/golang-shared/services/logger
 github.com/untangle/golang-shared/services/overseer
 github.com/untangle/golang-shared/services/settings

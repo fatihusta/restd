@@ -105,8 +105,10 @@ func Startup() {
 	// todo replace with netspace routess
 	api.Any("/netspace/*path", packetdProxy)
 
-	// todo replace with license routes
-	api.Any("/license/*path", packetdProxy)
+	api.GET("/license/enabled/:appname", licenseEnabled)
+	api.PUT("/license/setstate/:appname/:command", setAppState)
+	api.GET("/license/defaults", getLicenseDefaults)
+	api.PUT("/license/clsalive", clsIsAlive)
 
 	// todo replace with logging routes
 	api.Any("/logging/*path", packetdProxy)
@@ -126,8 +128,7 @@ func Startup() {
 	// todo replace with gc routes
 	api.Any("/gc", packetdProxy)
 
-	// todo replace with fetch-licenses routes
-	api.Any("/fetch-licenses", packetdProxy)
+	api.POST("/fetch-licenses", fetchLicensesHandler)
 
 	// todo replace with fetch-licenses routes
 	api.Any("/factory-reset", packetdProxy)
