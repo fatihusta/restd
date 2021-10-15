@@ -7,7 +7,6 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
-	prep "github.com/untangle/golang-shared/structs/protocolbuffers/PacketdReply"
 	rrep "github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply"
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"google.golang.org/protobuf/proto"
@@ -208,34 +207,4 @@ func RetrieveReportdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) (
 	}
 
 	return resultItem, nil
-}
-
-// RetrievePacketdReplyItem retrieves the proper items needed from a PacketdReply
-func RetrievePacketdReplyItem(msg [][]byte, function zreq.ZMQRequest_Function) ([]map[string]interface{}, error) {
-	// Unencode the reply
-	unencodedReply := &prep.PacketdReply{}
-	unmarshalErr := proto.Unmarshal(msg[0], unencodedReply)
-	if unmarshalErr != nil {
-		return nil, errors.New("Failed to unencode: " + unmarshalErr.Error())
-	}
-
-	// If a serverError exists, return it
-	if len(unencodedReply.ServerError) != 0 {
-		return nil, errors.New(unencodedReply.ServerError)
-	}
-
-	// Based on function, set the result to the right protobuf data structure
-	var result []map[string]interface{}
-	resultItem := make(map[string]interface{})
-	switch function {
-	// case GetSessions:
-	// 	resultItem["result"] = unencodedReply.Conntracks
-	// case TestInfo:
-	// 	resultItem["result"] = unencodedReply.TestInfo
-	default:
-		resultItem["result"] = nil
-	}
-	result = append(result, resultItem)
-
-	return result, nil
 }

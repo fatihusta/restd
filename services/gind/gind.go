@@ -45,9 +45,6 @@ func Startup() {
 	engine.GET("/", rootHandler)
 
 	// API endpoints
-	//engine.GET("/testSessions", statusSessions)
-	//engine.GET("/testInfo", testInfo)
-	//engine.GET("/testError")
 
 	engine.POST("/account/login", authRequired())
 	engine.POST("/account/logout", authLogout)
@@ -233,30 +230,6 @@ func ginlogger() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// testInfo sends request and parses the testInfo packetd response for testing ZMQ and restd
-// basic format for gin handlers
-// func testInfo(c *gin.Context) {
-// 	logger.Debug("testInfo()\n")
-
-// 	// Send the PACKETD TEST_INFO request and get the reply
-// 	reply, err := messenger.SendRequestAndGetReply(messenger.Packetd, messenger.TestInfo)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	logger.Debug("received reply: ", reply)
-
-// 	// Retrieve the TEST_INFO information
-// 	info, err := messenger.RetrievePacketdReplyItem(reply, messenger.TestInfo)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, info)
-// }
 
 func rootHandler(c *gin.Context) {
 	if isSetupWizardCompleted() {
