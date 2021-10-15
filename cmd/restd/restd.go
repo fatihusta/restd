@@ -1,4 +1,5 @@
 package main
+
 import (
 	"io/ioutil"
 	"os"
@@ -9,15 +10,15 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-	
 
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/restd/services/certmanager"
 	"github.com/untangle/restd/services/gind"
 	"github.com/untangle/restd/services/messenger"
 )
 
 var shutdownFlag uint32
-var shutdownChannel = make (chan bool)
+var shutdownChannel = make(chan bool)
 
 /* main function for restd */
 func main() {
@@ -43,7 +44,7 @@ func main() {
 	// Start services
 	startServices()
 
-	// Handle the stop signals 
+	// Handle the stop signals
 	handleSignals()
 
 	// Keep restd running while the shutdown flag is false
@@ -68,6 +69,7 @@ func main() {
 func startServices() {
 	gind.Startup()
 	messenger.Startup()
+	certmanager.Startup()
 }
 
 /* stopServices stops the gin server, ZMQ messenger, and logger*/
@@ -75,6 +77,7 @@ func stopServices() {
 	gind.Shutdown()
 	messenger.Shutdown()
 	logger.Shutdown()
+	certmanager.Shutdown()
 }
 
 /* handleSignals handles SIGINT, SIGTERM, and SIGQUIT signals */

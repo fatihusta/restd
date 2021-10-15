@@ -4,10 +4,18 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"path"
+	"reflect"
 	"strings"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/settings"
+	"github.com/untangle/restd/services/certmanager"
 	"github.com/untangle/restd/services/messenger"
 )
 
@@ -30,25 +38,124 @@ func Startup() {
 	engine.Use(gin.Recovery())
 	engine.Use(addHeaders)
 
-	engine.GET("/ping", pingHandler)
+	store := cookie.NewStore([]byte(GenerateRandomString(32)))
+
+	engine.Use(sessions.Sessions("auth_session", store))
+	engine.Use(addTokenToSession)
+
+	engine.GET("/", rootHandler)
 
 	// API endpoints
 	engine.GET("/testSessions", statusSessions)
 	engine.GET("/testInfo", testInfo)
 	//engine.GET("/testError")
 
+	engine.GET("/ping", pingHandler)
+
+	engine.POST("/account/login", authRequired())
+	engine.POST("/account/logout", authLogout)
+	engine.GET("/account/logout", authLogout)
+	engine.GET("/account/status", authStatus)
+
+	api := engine.Group("/api")
+	api.Use(authRequired())
+	api.GET("/status/uid", statusUID)
+
+	// replace packetdProxy with handlers
+	api.GET("/status/sessions", packetdProxy)
+	api.GET("/status/system", packetdProxy)
+	api.GET("/status/hardware", packetdProxy)
+	api.GET("/status/upgrade", packetdProxy)
+	api.GET("/status/build", packetdProxy)
+	api.GET("/status/license", packetdProxy)
+	api.GET("/status/wantest/:device", packetdProxy)
+	api.GET("/status/command/find_account", packetdProxy)
+	api.GET("/status/interfaces/:device", packetdProxy)
+	api.GET("/status/arp/", packetdProxy)
+	api.GET("/status/arp/:device", packetdProxy)
+	api.GET("/status/dhcp", packetdProxy)
+	api.GET("/status/route", packetdProxy)
+	api.GET("/status/routetables", packetdProxy)
+	api.GET("/status/route/:table", packetdProxy)
+	api.GET("/status/rules", packetdProxy)
+	api.GET("/status/routerules", packetdProxy)
+	api.GET("/status/wwan/:device", packetdProxy)
+	api.GET("/status/wifichannels/:device", packetdProxy)
+	api.GET("/status/wifimodelist/:device", packetdProxy)
+	api.GET("/status/diagnostics", packetdProxy)
+
+	// todo replace with threatprevention host
+	api.GET("/threatprevention/lookup/:host", packetdProxy)
+
+	// todo replace with settings routes
+	api.Any("/settings/*path", packetdProxy)
+
+	// todo replace with defaults routes
+	api.Any("/defaults/*path", packetdProxy)
+
+	// todo replace with reports routes
+	api.Any("/reports/*path", packetdProxy)
+
+	// todo replace with warehouse routes
+	api.Any("/warehouse/*path", packetdProxy)
+
+	// todo replace with netspace routess
+	api.Any("/netspace/*path", packetdProxy)
+
+	// todo replace with license routes
+	api.Any("/license/*path", packetdProxy)
+
+	// todo replace with logging routes
+	api.Any("/logging/*path", packetdProxy)
+
+	// todo replace with wireguard routes
+	api.Any("/wireguard/*path", packetdProxy)
+
+	// todo replace with classify routes
+	api.Any("/classify/*path", packetdProxy)
+
+	// todo replace with logger routes
+	api.Any("/logger/*path", packetdProxy)
+
+	// todo replace with logging routes
+	api.Any("/debug", packetdProxy)
+
+	// todo replace with gc routes
+	api.Any("/gc", packetdProxy)
+
+	// todo replace with fetch-licenses routes
+	api.Any("/fetch-licenses", packetdProxy)
+
+	// todo replace with fetch-licenses routes
+	api.Any("/factory-reset", packetdProxy)
+
+	// todo replace with upgrade handlers
+	api.POST("/sysupgrade", packetdProxy)
+	api.POST("/upgrade", packetdProxy)
+
+	// todo replace with reboot/shutdown handlers
+	api.Any("/reboot", packetdProxy)
+	api.Any("/shutdown", packetdProxy)
+
+	// todo replace with dhcp handlers
+	api.POST("/releasedhcp/:device", packetdProxy)
+	api.POST("/renewdhcp/:device", packetdProxy)
+
+	prof := engine.Group("/pprof")
+	// todo replace with prof handlers
+	prof.Any("/*path", packetdProxy)
+
 	// files
 	engine.Static("/admin", "/www/admin")
-	engine.Static("/settings", "/www/settings")
-	engine.Static("/reports", "/www/reports")
-	engine.Static("/setup", "/www/setup")
-	engine.Static("/static", "/www/static")
+
 	// handle 404 routes
 	engine.NoRoute(noRouteHandler)
 
 	// listen and serve on 0.0.0.0:80
-	// TODO change to :80 once take out packetd restd
-	go engine.Run(":8080")
+	go engine.Run(":80")
+
+	cert, key := certmanager.GetConfiguredCert()
+	go engine.RunTLS(":443", cert, key)
 
 	logger.Info("The RestD engine has been started\n")
 
@@ -57,6 +164,26 @@ func Startup() {
 // Shutdown function here to stop gind service
 func Shutdown() {
 
+}
+
+func packetdProxy(c *gin.Context) {
+	remote, err := url.Parse("http://localhost:81")
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	//Define the director func
+
+	proxy.Director = func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = c.Request.URL.Path
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 // GenerateRandomString generates a random string of the specified length
@@ -75,7 +202,19 @@ func noRouteHandler(c *gin.Context) {
 	// MFW-704 - return 200 for JS map files requested by Safari on Mac
 	if strings.Contains(c.Request.URL.Path, ".js.map") {
 		c.String(http.StatusOK, "")
+		return
 	}
+
+	// check if the route is for the admin SPA
+	if strings.HasPrefix(c.Request.URL.Path, "/admin/") {
+		// check if it is a tidy URL route and not a file request
+		ext := path.Ext(c.Request.RequestURI)
+		if ext == "" {
+			c.File("/www/admin/index.html")
+			return
+		}
+	}
+
 	// otherwise browser will default to its 404 handler
 }
 
@@ -125,4 +264,62 @@ func pingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
 	})
+}
+func rootHandler(c *gin.Context) {
+	if isSetupWizardCompleted() {
+		c.Redirect(http.StatusTemporaryRedirect, "/admin")
+	} else {
+		c.Redirect(http.StatusTemporaryRedirect, "/admin/setup")
+	}
+}
+
+// returns true if the setup wizard is completed, or false if not
+// if any error occurs it returns true (assumes the wizard is completed)
+func isSetupWizardCompleted() bool {
+	wizardCompletedJSON, err := settings.GetSettings([]string{"system", "setupWizard", "completed"})
+	if err != nil {
+		logger.Warn("Failed to read setup wizard completed settings: %v\n", err.Error())
+		return true
+	}
+	if wizardCompletedJSON == nil {
+		logger.Warn("Failed to read setup wizard completed settings: %v\n", wizardCompletedJSON)
+		return true
+	}
+	wizardCompletedBool, ok := wizardCompletedJSON.(bool)
+	if !ok {
+		logger.Warn("Invalid type of setup wizard completed setting: %v %v\n", wizardCompletedJSON, reflect.TypeOf(wizardCompletedJSON))
+		return true
+	}
+
+	return wizardCompletedBool
+}
+
+// statusUID returns the UID of the system
+func statusUID(c *gin.Context) {
+	logger.Debug("statusUID()\n")
+
+	uid, err := settings.GetUIDOpenwrt()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+
+	c.String(http.StatusOK, uid)
+}
+
+// addTokenToSession checks for a "token" argument, and adds it to the session
+// this is easier than passing it around among redirects
+func addTokenToSession(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		return
+	}
+	logger.Info("Saving token in session: %v\n", token)
+	session := sessions.Default(c)
+	session.Set("token", token)
+	err := session.Save()
+	if err != nil {
+		logger.Warn("Error saving session: %s\n", err.Error())
+	}
+	authRequired()
 }
